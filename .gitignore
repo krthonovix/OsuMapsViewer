@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.cache/
+.env
+*.local
+maps/*.osz
+*.osr
+*.osk
