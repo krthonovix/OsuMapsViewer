@@ -21,7 +21,7 @@ function load(name: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`No se pudo cargar el sprite ${name}.`));
+    image.onerror = () => reject(new Error(`Could not load skin sprite ${name}.`));
     image.src = base + name;
   });
 }

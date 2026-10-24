@@ -93,7 +93,7 @@ export function parseBeatmap(source: string, audioUrl: string | null, background
     }
   }
   return {
-    title: metadata.TitleUnicode || metadata.Title || 'Mapa desconocido',
+    title: metadata.TitleUnicode || metadata.Title || 'Unknown beatmap',
     artist: metadata.ArtistUnicode || metadata.Artist || '',
     creator: metadata.Creator || '',
     version: metadata.Version || '',

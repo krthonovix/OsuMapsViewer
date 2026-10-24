@@ -33,7 +33,7 @@ async function token() {
   const id = process.env.OSU_CLIENT_ID;
   const secret = process.env.OSU_CLIENT_SECRET;
   if (!id || !secret) {
-    throw new MapError('NOT_CONFIGURED', 'Faltan las credenciales de osu!api en el servidor.', 503);
+    throw new MapError('NOT_CONFIGURED', 'The server is missing osu! API credentials.', 503);
   }
   const response = await fetch('https://osu.ppy.sh/oauth/token', {
     method: 'POST',
@@ -41,7 +41,7 @@ async function token() {
     body: JSON.stringify({ client_id: Number(id), client_secret: secret, grant_type: 'client_credentials', scope: 'public' }),
     signal: AbortSignal.timeout(12_000),
   });
-  if (!response.ok) throw new MapError('OSU_API_UNAVAILABLE', 'No se pudo autenticar con osu!api.');
+  if (!response.ok) throw new MapError('OSU_API_UNAVAILABLE', 'Could not authenticate with the osu! API.');
   const data = await response.json() as { access_token: string; expires_in: number };
   accessToken = { value: data.access_token, expires: Date.now() + data.expires_in * 1000 };
   return accessToken.value;
@@ -53,20 +53,20 @@ async function lookup(checksum: string) {
       headers: { 'user-agent': userAgent, accept: 'application/json' },
       signal: AbortSignal.timeout(12_000),
     });
-    if (response.status === 404) throw new MapError('NOT_FOUND', 'No se encontró el mapa exacto de este replay.', 404);
-    if (!response.ok) throw new MapError('PROVIDER_UNAVAILABLE', 'La búsqueda de mapas no está disponible en este momento.');
+    if (response.status === 404) throw new MapError('NOT_FOUND', 'The exact beatmap for this replay was not found.', 404);
+    if (!response.ok) throw new MapError('PROVIDER_UNAVAILABLE', 'Beatmap lookup is unavailable right now.');
     const data = await response.json() as { SetID?: number };
-    if (!Number.isInteger(data.SetID) || !data.SetID) throw new MapError('NOT_FOUND', 'La búsqueda no devolvió un paquete de mapa.', 404);
+    if (!Number.isInteger(data.SetID) || !data.SetID) throw new MapError('NOT_FOUND', 'Beatmap lookup returned no beatmapset.', 404);
     return { beatmapset_id: data.SetID };
   }
   const response = await fetch(`https://osu.ppy.sh/api/v2/beatmaps/lookup?checksum=${checksum}`, {
     headers: { authorization: `Bearer ${await token()}`, accept: 'application/json' },
     signal: AbortSignal.timeout(12_000),
   });
-  if (response.status === 404) throw new MapError('NOT_FOUND', 'osu! no encontró un mapa con el checksum de este replay.', 404);
-  if (!response.ok) throw new MapError('OSU_API_UNAVAILABLE', 'La búsqueda de mapas no está disponible en este momento.');
+  if (response.status === 404) throw new MapError('NOT_FOUND', 'osu! found no beatmap with this replay checksum.', 404);
+  if (!response.ok) throw new MapError('OSU_API_UNAVAILABLE', 'Beatmap lookup is unavailable right now.');
   const data = await response.json() as { id: number; beatmapset_id: number; checksum?: string };
-  if (!data.beatmapset_id) throw new MapError('NOT_FOUND', 'La búsqueda no devolvió un paquete de mapa.', 404);
+  if (!data.beatmapset_id) throw new MapError('NOT_FOUND', 'Beatmap lookup returned no beatmapset.', 404);
   return data;
 }
 
@@ -77,10 +77,10 @@ async function download(url: URL, bearer?: string) {
     signal: AbortSignal.timeout(45_000),
   });
   if (!response.ok || !response.body) {
-    throw new MapError('PROVIDER_UNAVAILABLE', `La fuente de mapas respondió con HTTP ${response.status}.`);
+    throw new MapError('PROVIDER_UNAVAILABLE', `The beatmap provider returned HTTP ${response.status}.`);
   }
   const length = Number(response.headers.get('content-length') || 0);
-  if (length > 80_000_000) throw new MapError('MAP_TOO_LARGE', 'El paquete supera el límite de 80 MB.');
+  if (length > 80_000_000) throw new MapError('MAP_TOO_LARGE', 'The beatmap package exceeds the 80 MB limit.');
   const chunks: Uint8Array[] = [];
   let size = 0;
   const reader = response.body.getReader();
@@ -90,7 +90,7 @@ async function download(url: URL, bearer?: string) {
     size += value.length;
     if (size > 80_000_000) {
       await reader.cancel();
-      throw new MapError('MAP_TOO_LARGE', 'El paquete supera el límite de 80 MB.');
+      throw new MapError('MAP_TOO_LARGE', 'The beatmap package exceeds the 80 MB limit.');
     }
     chunks.push(value);
   }
@@ -104,18 +104,18 @@ function extract(bytes: Uint8Array, checksum: string, beatmapsetId: number | nul
   try {
     files = unzipSync(bytes, { filter: file => {
       count++;
-      if (count > 500) throw new MapError('MAP_TOO_LARGE', 'El paquete contiene demasiados archivos.');
+      if (count > 500) throw new MapError('MAP_TOO_LARGE', 'The beatmap package contains too many files.');
       const lower = file.name.toLowerCase();
       if (!/\.(osu|mp3|ogg|wav|jpg|jpeg|png|webp|gif)$/.test(lower)) return false;
       totalSize += file.originalSize;
       if (file.originalSize > 80_000_000 || totalSize > 250_000_000) {
-        throw new MapError('MAP_TOO_LARGE', 'El paquete descomprimido supera el límite permitido.');
+        throw new MapError('MAP_TOO_LARGE', 'The extracted package exceeds the allowed size.');
       }
       return true;
     } });
   } catch (error) {
     if (error instanceof MapError) throw error;
-    throw new MapError('INVALID_PACKAGE', 'La fuente devolvió un paquete .osz inválido.');
+    throw new MapError('INVALID_PACKAGE', 'The provider returned an invalid .osz package.');
   }
   const entries = Object.entries(files);
   const matched = entries.find(([name, content]) =>
@@ -123,7 +123,7 @@ function extract(bytes: Uint8Array, checksum: string, beatmapsetId: number | nul
     createHash('md5').update(content).digest('hex') === checksum
   );
   if (!matched) {
-    throw new MapError('VERSION_UNAVAILABLE', 'La fuente no tiene la versión exacta del mapa de este replay.', 404);
+    throw new MapError('VERSION_UNAVAILABLE', 'The provider does not have the exact beatmap version for this replay.', 404);
   }
   const osu = Buffer.from(matched[1]);
   const text = new TextDecoder().decode(osu);
@@ -145,7 +145,7 @@ function extract(bytes: Uint8Array, checksum: string, beatmapsetId: number | nul
   const bgExt = background?.[0].split('.').pop()?.toLowerCase();
   const backgroundType = bgExt === 'jpg' || bgExt === 'jpeg' ? 'image/jpeg'
     : bgExt === 'png' ? 'image/png' : bgExt === 'webp' ? 'image/webp' : bgExt === 'gif' ? 'image/gif' : null;
-  const title = text.match(/^TitleUnicode\s*:\s*(.+)$/mi)?.[1] ?? text.match(/^Title\s*:\s*(.+)$/mi)?.[1] ?? 'Mapa';
+  const title = text.match(/^TitleUnicode\s*:\s*(.+)$/mi)?.[1] ?? text.match(/^Title\s*:\s*(.+)$/mi)?.[1] ?? 'Beatmap';
   return {
     osu, audio: audio ? Buffer.from(audio[1]) : null, audioType,
     background: background ? Buffer.from(background[1]) : null, backgroundType,
@@ -170,7 +170,7 @@ async function resolveMap(checksum: string): Promise<ResolvedMap> {
       const found = await lookup(checksum);
       beatmapsetId = found.beatmapset_id;
       const url = new URL(template.replaceAll('{beatmapsetId}', String(beatmapsetId)));
-      if (url.protocol !== 'https:') throw new MapError('INVALID_CONFIG', 'La URL del proveedor debe usar HTTPS.', 503);
+      if (url.protocol !== 'https:') throw new MapError('INVALID_CONFIG', 'The provider URL must use HTTPS.', 503);
       bytes = await download(url, process.env.OSZ_AUTH_TOKEN);
     }
     const result = extract(bytes, checksum, beatmapsetId);
@@ -200,9 +200,9 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.get('/api/maps/:checksum/manifest', async (req, res) => {
-  if (!withinLimit(`manifest:${req.ip}`, 30)) return res.status(429).json({ code: 'RATE_LIMITED', message: 'Demasiadas búsquedas. Espera un minuto e inténtalo de nuevo.' });
+  if (!withinLimit(`manifest:${req.ip}`, 30)) return res.status(429).json({ code: 'RATE_LIMITED', message: 'Too many lookups. Wait a minute and try again.' });
   const checksum = String(req.params.checksum).toLowerCase();
-  if (!validChecksum(checksum)) return res.status(400).json({ code: 'INVALID_CHECKSUM', message: 'Checksum inválido.' });
+  if (!validChecksum(checksum)) return res.status(400).json({ code: 'INVALID_CHECKSUM', message: 'Invalid checksum.' });
   try {
     const map = await resolveMap(checksum);
     res.json({
@@ -213,7 +213,7 @@ app.get('/api/maps/:checksum/manifest', async (req, res) => {
       backgroundUrl: map.background ? `/api/maps/${checksum}/background` : null,
     });
   } catch (error) {
-    const known = error instanceof MapError ? error : new MapError('PROVIDER_UNAVAILABLE', 'No se pudo obtener el mapa.');
+    const known = error instanceof MapError ? error : new MapError('PROVIDER_UNAVAILABLE', 'Could not retrieve the beatmap.');
     res.status(known.status).json({ code: known.code, message: known.message });
   }
 });
@@ -262,4 +262,4 @@ if (existsSync(dist)) {
 }
 
 const host = process.env.HOST || '127.0.0.1';
-app.listen(port, host, () => console.log(`API lista en http://${host}:${port}`));
+app.listen(port, host, () => console.log(`API ready at http://${host}:${port}`));

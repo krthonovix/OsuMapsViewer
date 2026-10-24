@@ -23,23 +23,23 @@ function App() {
     setError('');
     setStatus('reading');
     try {
-      if (!file.name.toLowerCase().endsWith('.osr')) throw new Error('Selecciona un archivo con extensión .osr.');
+      if (!file.name.toLowerCase().endsWith('.osr')) throw new Error('Select a file with the .osr extension.');
       const parsed = await parseReplay(new Uint8Array(await file.arrayBuffer()));
       setReplay(parsed);
       setStatus('searching');
       const response = await fetch(`/api/maps/${parsed.checksum}/manifest`);
       const data = await response.json() as Manifest & { message?: string };
-      if (!response.ok) throw new Error(data.message || 'No se pudo obtener el mapa de este replay.');
+      if (!response.ok) throw new Error(data.message || 'Could not retrieve the beatmap for this replay.');
       setStatus('loading');
       const mapResponse = await fetch(data.osuUrl);
-      if (!mapResponse.ok) throw new Error('No se pudo leer la dificultad del mapa.');
+      if (!mapResponse.ok) throw new Error('Could not read the beatmap difficulty.');
       const source = await mapResponse.text();
       const map = parseBeatmap(source, data.audioUrl, data.backgroundUrl);
-      if (!map.objects.length) throw new Error('La dificultad no contiene objetos reproducibles.');
+      if (!map.objects.length) throw new Error('This difficulty has no playable objects.');
       setBeatmap(map);
       setStatus('ready');
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Ocurrió un error inesperado.');
+      setError(reason instanceof Error ? reason.message : 'An unexpected error occurred.');
       setStatus('error');
     }
   }
@@ -51,7 +51,7 @@ function App() {
     <main className="landing">
       <nav><div className="brand"><span className="brand-icon">◉</span> osu! replay viewer</div><span className="nav-tag">osu!standard</span></nav>
       <div className="hero">
-        <div className="intro"><p className="eyebrow">TUS JUGADAS, EN EL NAVEGADOR</p><h1>Revive cada<br /><em>movimiento.</em></h1><p className="subtitle">Arrastra un replay de osu! y mira la jugada sin abrir el juego. Buscamos el mapa automáticamente para ti.</p><div className="steps"><span><b>01</b> Sube tu .osr</span><span><b>02</b> Encontramos el mapa</span><span><b>03</b> Dale play</span></div></div>
+        <div className="intro"><p className="eyebrow">YOUR PLAYS, IN YOUR BROWSER</p><h1>Relive every<br /><em>move.</em></h1><p className="subtitle">Drop an osu! replay and watch it without opening the game. We find the matching beatmap for you.</p><div className="steps"><span><b>01</b> Upload your .osr</span><span><b>02</b> We find the beatmap</span><span><b>03</b> Press play</span></div></div>
         <div
           className={`upload-card ${dragging ? 'dragging' : ''}`}
           onDragOver={event => { event.preventDefault(); setDragging(true); }}
@@ -60,18 +60,18 @@ function App() {
         >
           <input ref={inputRef} type="file" accept=".osr" hidden onChange={event => void load(event.target.files?.[0])} />
           <div className="upload-icon">↗</div>
-          <p className="eyebrow">CARGAR REPETICIÓN</p>
-          <h2>Tu replay empieza aquí.</h2>
-          <p>Arrastra tu archivo .osr a esta zona<br />o selecciónalo desde tu equipo.</p>
-          <button className="primary" onClick={() => inputRef.current?.click()} disabled={status === 'reading' || status === 'searching' || status === 'loading'}>Seleccionar archivo .osr <span>→</span></button>
-          {status === 'reading' && <p className="status">Leyendo la repetición…</p>}
-          {status === 'searching' && <p className="status">Buscando el mapa exacto…</p>}
-          {status === 'loading' && <p className="status">Preparando el reproductor…</p>}
+          <p className="eyebrow">LOAD A REPLAY</p>
+          <h2>Your replay starts here.</h2>
+          <p>Drop your .osr file here<br />or choose it from your device.</p>
+          <button className="primary" onClick={() => inputRef.current?.click()} disabled={status === 'reading' || status === 'searching' || status === 'loading'}>Choose .osr file <span>→</span></button>
+          {status === 'reading' && <p className="status">Reading replay…</p>}
+          {status === 'searching' && <p className="status">Finding the exact beatmap…</p>}
+          {status === 'loading' && <p className="status">Preparing the player…</p>}
           {status === 'error' && <div className="error" role="alert">{error}</div>}
-          <small>Solo osu!standard · El .osr se procesa en tu navegador</small>
+          <small>osu!standard only · Your .osr is processed in your browser</small>
         </div>
       </div>
-      <footer>Visualiza el cursor, los objetos y las pulsaciones en una sola línea de tiempo.</footer>
+      <footer>Watch the cursor, hit objects, and key presses on one timeline.</footer>
     </main>
   );
 }

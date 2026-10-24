@@ -4,7 +4,7 @@ import { unzipSync } from 'fflate';
 
 const archive = process.argv[2];
 if (!archive || !existsSync(archive)) {
-  console.error('Uso: node scripts/extract-rafis-skin.mjs "Rafis +HDDT.osk"');
+  console.error('Usage: node scripts/extract-rafis-skin.mjs "Rafis +HDDT.osk"');
   process.exit(1);
 }
 const chosen = [
@@ -17,7 +17,7 @@ const chosen = [
 const selected = new Set(chosen);
 const files = unzipSync(readFileSync(archive), { filter: entry => selected.has(entry.name) });
 const missing = chosen.filter(name => !(name in files));
-if (missing.length) throw new Error(`Faltan sprites: ${missing.join(', ')}`);
+if (missing.length) throw new Error(`Missing sprites: ${missing.join(', ')}`);
 const output = resolve('public/skins/rafis-hddt');
 mkdirSync(output, { recursive: true });
 for (const name of chosen) {
@@ -26,4 +26,4 @@ for (const name of chosen) {
     : files[name];
   writeFileSync(resolve(output, name), bytes);
 }
-console.log(`Extraídos ${chosen.length} archivos de ${archive} en ${output}`);
+console.log(`Extracted ${chosen.length} files from ${archive} to ${output}`);

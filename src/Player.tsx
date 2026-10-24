@@ -429,7 +429,7 @@ export function Player({ replay, map, onReset }: { replay: Replay; map: Beatmap;
   return (
     <main className="player-page">
       <div className="player-topbar">
-        <button className="back" onClick={onReset}>← <span>Otro replay</span></button>
+        <button className="back" onClick={onReset}>← <span>Another replay</span></button>
         <div className="player-brand"><span className="brand-icon">◉</span> osu! replay viewer</div>
         <span className="topbar-skin">SKIN · RAFIS +HDDT</span>
       </div>
@@ -442,18 +442,18 @@ export function Player({ replay, map, onReset }: { replay: Replay; map: Beatmap;
           <div className="game-stage" ref={stageRef}>
             {map.backgroundUrl && <img className="map-background" src={map.backgroundUrl} alt="" />}
             <div className="background-dim" style={{ opacity: dim }} />
-            <canvas ref={canvasRef} className="game-canvas" aria-label="Repetición de osu!standard" />
+            <canvas ref={canvasRef} className="game-canvas" aria-label="osu!standard replay" />
             <div className="in-game-top">
               <div className="replay-status"><div className="replay-badge"><span className="live-dot" /> REPLAY MODE <small>{replay.player}</small></div><div className="life-bar"><span style={{ width: `${lifeAt(replay, time) * 100}%` }} /></div></div>
-              <div className="game-score"><small>PUNTUACIÓN</small><strong>{String(progress.score).padStart(8, '0')}</strong><span>{progress.accuracy.toFixed(2)}%</span></div>
+              <div className="game-score"><small>SCORE</small><strong>{String(progress.score).padStart(8, '0')}</strong><span>{progress.accuracy.toFixed(2)}%</span></div>
             </div>
             <div className="stage-progress"><span style={{ width: `${time / duration * 100}%` }} /></div>
             <div className="in-game-bottom">
               <span className="combo-hud"><strong>{progress.combo}<small>x</small></strong><small>COMBO</small></span>
               <div className="key-overlay">{['K1', 'K2'].map((name, i) => <span key={name} className={keys & (1 << i) ? 'pressed' : ''}>{name}</span>)}</div>
             </div>
-            {!playing && <button className="stage-play" onClick={() => void toggle()} aria-label="Reproducir repetición">▶</button>}
-            {fullscreen && <button className="leave-fullscreen" onClick={toggleFullscreen}>Salir de pantalla completa</button>}
+            {!playing && <button className="stage-play" onClick={() => void toggle()} aria-label="Play replay">▶</button>}
+            {fullscreen && <button className="leave-fullscreen" onClick={toggleFullscreen}>Exit fullscreen</button>}
           </div>
           {map.audioUrl && <audio ref={audioRef} src={map.audioUrl} preload="metadata"
             onLoadedMetadata={() => { if (pendingSeekRef.current) seekAudio(); else if (!scrubbingRef.current && timeRef.current > 0) seek(timeRef.current, playing); }}
@@ -461,39 +461,39 @@ export function Player({ replay, map, onReset }: { replay: Replay; map: Beatmap;
             onCanPlay={() => { if (pendingSeekRef.current && !audioRef.current?.seeking) void finishSeek(); }}
             onError={() => { const pending = pendingSeekRef.current; pendingSeekRef.current = null; setLoadingAudio(false); if (pending) { clock.current = { time: pending.target, at: performance.now() }; setPlaying(pending.resume); } }} />}
           <div className="player-controls">
-            <button className="control-play" onClick={() => void toggle()} aria-label={playing ? 'Pausar' : 'Reproducir'}>{playing ? 'Ⅱ' : '▶'}</button>
+            <button className="control-play" onClick={() => void toggle()} aria-label={playing ? 'Pause' : 'Play'}>{playing ? 'Ⅱ' : '▶'}</button>
             <span className="control-time">{format(time)}</span>
-            <input className="seekbar" aria-label="Posición de la repetición" type="range" min="0" max={duration} value={time}
+            <input className="seekbar" aria-label="Replay position" type="range" min="0" max={duration} value={time}
               onPointerDown={() => { scrubbingRef.current = true; resumeAfterScrubRef.current = playing; seekSequenceRef.current++; pendingSeekRef.current = null; audioRef.current?.pause(); setLoadingAudio(false); }}
               onPointerUp={event => { if (scrubbingRef.current) seek(Number(event.currentTarget.value), resumeAfterScrubRef.current); }}
               onPointerCancel={event => { if (scrubbingRef.current) seek(Number(event.currentTarget.value), resumeAfterScrubRef.current); }}
               onChange={event => { const target = Number(event.target.value); if (scrubbingRef.current) previewSeek(target); else seek(target); }} />
             <span className="control-time end">{format(duration)}</span>
-            {loadingAudio && <span className="loading-audio">Cargando audio…</span>}
-            <select className="speed-select" aria-label="Velocidad de reproducción" value={playbackFactor} onChange={event => setPlaybackFactor(Number(event.target.value))}>
+            {loadingAudio && <span className="loading-audio">Loading audio…</span>}
+            <select className="speed-select" aria-label="Playback speed" value={playbackFactor} onChange={event => setPlaybackFactor(Number(event.target.value))}>
               <option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1">1×</option><option value="1.25">1.25×</option>
             </select>
-            <button className="fullscreen-button" onClick={toggleFullscreen} aria-label="Pantalla completa">⛶</button>
+            <button className="fullscreen-button" onClick={toggleFullscreen} aria-label="Fullscreen">⛶</button>
           </div>
           <div className="player-settings">
-            <label>Oscurecer fondo <input type="range" min="0.25" max="0.95" step="0.01" value={dim} onChange={event => setDim(Number(event.target.value))} /></label>
-            <label>Volumen <input type="range" min="0" max="1" step="0.01" value={volume} onChange={event => setVolume(Number(event.target.value))} /></label>
+            <label>Background dim <input type="range" min="0.25" max="0.95" step="0.01" value={dim} onChange={event => setDim(Number(event.target.value))} /></label>
+            <label>Volume <input type="range" min="0" max="1" step="0.01" value={volume} onChange={event => setVolume(Number(event.target.value))} /></label>
             <details className="sync-details">
-              <summary>Sincronización {sync.confidence === 'low' ? '· revisar' : '· automática'}</summary>
-              <div><p>Desfase detectado: {sync.offsetMs} ms · {sync.matchedObjects} objetos coincidentes</p><label>Ajuste manual <input type="range" min="-3000" max="3000" step="5" value={manualOffset} onChange={event => setManualOffset(Number(event.target.value))} /> <span>{manualOffset > 0 ? '+' : ''}{manualOffset} ms</span></label><button onClick={() => setManualOffset(0)}>Restablecer</button></div>
+              <summary>Sync {sync.confidence === 'low' ? '· check' : '· automatic'}</summary>
+              <div><p>Detected offset: {sync.offsetMs} ms · {sync.matchedObjects} matched objects</p><label>Manual adjustment <input type="range" min="-3000" max="3000" step="5" value={manualOffset} onChange={event => setManualOffset(Number(event.target.value))} /> <span>{manualOffset > 0 ? '+' : ''}{manualOffset} ms</span></label><button onClick={() => setManualOffset(0)}>Reset</button></div>
             </details>
           </div>
         </section>
         <aside className="replay-sidebar">
-          <div className="sidebar-title"><span className="live-dot" /> RESUMEN DE LA JUGADA</div>
-          <div className="player-identity"><div className="avatar">{replay.player.slice(0, 1).toUpperCase()}</div><div><small>REPETICIÓN DE</small><strong>{replay.player}</strong></div></div>
-          <div className="big-stat"><small>PUNTUACIÓN ACTUAL</small><strong>{progress.score.toLocaleString()}</strong></div>
-          <div className="sidebar-stat-grid"><div><small>PRECISIÓN</small><strong>{progress.accuracy.toFixed(2)}%</strong></div><div><small>COMBO</small><strong>{progress.combo}×</strong></div></div>
-          <div className="judgment-card"><small>JUICIOS HASTA AHORA</small><div><span className="j300">300 <b>{progress.counts.n300}</b></span><span className="j100">100 <b>{progress.counts.n100}</b></span><span className="j50">50 <b>{progress.counts.n50}</b></span><span className="jmiss">MISS <b>{progress.counts.misses}</b></span></div></div>
-          <div className="review-card"><small>REVISAR GOLPES</small><p>{reviewJudgments.length} resultados por debajo de 300</p><div><button onClick={() => jumpToJudgment(-1)} disabled={!reviewJudgments.length}>← Anterior</button><button onClick={() => jumpToJudgment(1)} disabled={!reviewJudgments.length}>Siguiente →</button></div></div>
-          <div className="sidebar-skin"><span>SKIN ACTIVA</span><strong>Rafis +HDDT</strong><small>Skin proporcionada para este proyecto · mejor combo: {replay.maxCombo}×</small></div>
-          <p className="sidebar-estimate">Valores intermedios estimados · resultado final exacto</p>
-          {!map.audioUrl && <div className="sidebar-note">El mapa no contiene audio compatible; la trayectoria se reproduce en silencio.</div>}
+          <div className="sidebar-title"><span className="live-dot" /> PLAY SUMMARY</div>
+          <div className="player-identity"><div className="avatar">{replay.player.slice(0, 1).toUpperCase()}</div><div><small>REPLAY BY</small><strong>{replay.player}</strong></div></div>
+          <div className="big-stat"><small>CURRENT SCORE</small><strong>{progress.score.toLocaleString('en-US')}</strong></div>
+          <div className="sidebar-stat-grid"><div><small>ACCURACY</small><strong>{progress.accuracy.toFixed(2)}%</strong></div><div><small>COMBO</small><strong>{progress.combo}×</strong></div></div>
+          <div className="judgment-card"><small>JUDGMENTS SO FAR</small><div><span className="j300">300 <b>{progress.counts.n300}</b></span><span className="j100">100 <b>{progress.counts.n100}</b></span><span className="j50">50 <b>{progress.counts.n50}</b></span><span className="jmiss">MISS <b>{progress.counts.misses}</b></span></div></div>
+          <div className="review-card"><small>REVIEW HITS</small><p>{reviewJudgments.length} results below 300</p><div><button onClick={() => jumpToJudgment(-1)} disabled={!reviewJudgments.length}>← Previous</button><button onClick={() => jumpToJudgment(1)} disabled={!reviewJudgments.length}>Next →</button></div></div>
+          <div className="sidebar-skin"><span>ACTIVE SKIN</span><strong>Rafis +HDDT</strong><small>Skin supplied for this project · best combo: {replay.maxCombo}×</small></div>
+          <p className="sidebar-estimate">Intermediate values are estimates · final result is exact</p>
+          {!map.audioUrl && <div className="sidebar-note">This beatmap has no compatible audio. The replay plays silently.</div>}
         </aside>
       </div>
     </main>

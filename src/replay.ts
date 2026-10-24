@@ -29,7 +29,7 @@ class Reader {
     this.view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   }
   private need(length: number) {
-    if (this.pos + length > this.bytes.length) throw new Error('El archivo .osr está incompleto o dañado.');
+    if (this.pos + length > this.bytes.length) throw new Error('The .osr file is incomplete or corrupted.');
   }
   u8() { this.need(1); return this.view.getUint8(this.pos++); }
   u16() { this.need(2); const n = this.view.getUint16(this.pos, true); this.pos += 2; return n; }
@@ -38,14 +38,14 @@ class Reader {
   string() {
     const marker = this.u8();
     if (marker === 0) return '';
-    if (marker !== 11) throw new Error('El archivo .osr contiene una cadena inválida.');
+    if (marker !== 11) throw new Error('The .osr file contains an invalid string.');
     let length = 0;
     let shift = 0;
     for (let i = 0; i < 5; i++) {
       const byte = this.u8();
       length += (byte & 127) * 2 ** shift;
       if (!(byte & 128)) {
-        if (length > 1_000_000) throw new Error('El archivo .osr supera el tamaño permitido.');
+        if (length > 1_000_000) throw new Error('The .osr file exceeds the allowed size.');
         this.need(length);
         const result = new TextDecoder().decode(this.bytes.subarray(this.pos, this.pos + length));
         this.pos += length;
@@ -53,7 +53,7 @@ class Reader {
       }
       shift += 7;
     }
-    throw new Error('El archivo .osr contiene una longitud inválida.');
+    throw new Error('The .osr file contains an invalid length.');
   }
   blob(length: number) {
     this.need(length);
@@ -64,13 +64,13 @@ class Reader {
 }
 
 export async function parseReplay(bytes: Uint8Array): Promise<Replay> {
-  if (bytes.length > 25_000_000) throw new Error('El archivo .osr supera el límite de 25 MB.');
+  if (bytes.length > 25_000_000) throw new Error('The .osr file exceeds the 25 MB limit.');
   const reader = new Reader(bytes);
   const mode = reader.u8();
-  if (mode !== 0) throw new Error('Por ahora solo se admiten repeticiones de osu!standard.');
+  if (mode !== 0) throw new Error('Only osu!standard replays are supported.');
   const version = reader.u32();
   const checksum = reader.string().toLowerCase();
-  if (!/^[a-f0-9]{32}$/.test(checksum)) throw new Error('El .osr no contiene un checksum de mapa válido.');
+  if (!/^[a-f0-9]{32}$/.test(checksum)) throw new Error('The .osr file has no valid beatmap checksum.');
   const player = reader.string();
   reader.string(); // replay checksum
   const n300 = reader.u16();
@@ -89,7 +89,7 @@ export async function parseReplay(bytes: Uint8Array): Promise<Replay> {
   });
   reader.skip(8); // timestamp, Windows ticks
   const compressedLength = reader.u32();
-  if (compressedLength > 25_000_000) throw new Error('Los datos del replay son demasiado grandes.');
+  if (compressedLength > 25_000_000) throw new Error('The compressed replay data is too large.');
   const compressed = reader.blob(compressedLength);
   let decoded: string | Uint8Array;
   try {
@@ -101,10 +101,10 @@ export async function parseReplay(bytes: Uint8Array): Promise<Replay> {
       finally { worker.terminate(); }
     }
   } catch {
-    throw new Error('No se pudieron descomprimir los movimientos del replay.');
+    throw new Error('Could not decompress the replay movements.');
   }
   const raw = typeof decoded === 'string' ? decoded : new TextDecoder().decode(decoded);
-  if (raw.length > 50_000_000) throw new Error('El replay descomprimido supera el límite permitido.');
+  if (raw.length > 50_000_000) throw new Error('The decompressed replay exceeds the allowed size.');
   const frames: ReplayFrame[] = [];
   let time = 0;
   for (const entry of raw.split(',')) {
@@ -119,9 +119,9 @@ export async function parseReplay(bytes: Uint8Array): Promise<Replay> {
     if (!Number.isFinite(delta) || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isInteger(keys) || delta < 0) continue;
     time += delta;
     frames.push({ time, x, y, keys });
-    if (frames.length > 2_000_000) throw new Error('El replay contiene demasiados movimientos.');
+    if (frames.length > 2_000_000) throw new Error('The replay contains too many movements.');
   }
-  if (!frames.length) throw new Error('El .osr no contiene movimientos reproducibles.');
+  if (!frames.length) throw new Error('The .osr file contains no playable movements.');
   return { checksum, player, version, score, maxCombo, perfect, mods, counts: { n300, n100, n50, misses }, frames, duration: time, life };
 }
 

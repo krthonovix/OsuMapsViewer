@@ -52,7 +52,7 @@ try {
   const background = await fetch(`http://127.0.0.1:3001${manifest.backgroundUrl}`);
   assert.equal(background.status, 200);
   assert.equal(background.headers.get('content-type'), 'image/png');
-  console.log('Smoke local: manifest, checksum, .osu, audio, fondo y rango correctos');
+  console.log('Local smoke test passed: manifest, checksum, .osu, audio, background, and byte ranges');
 } finally {
   unlinkSync(target);
   if (createdFolder) rmdirSync(folder);

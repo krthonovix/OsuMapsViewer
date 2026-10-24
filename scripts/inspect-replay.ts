@@ -3,7 +3,7 @@ import { parseReplay, accuracy, modNames } from '../src/replay';
 
 const path = process.argv[2];
 if (!path) {
-  console.error('Uso: npm run inspect:replay -- ruta/al/archivo.osr');
+  console.error('Usage: npm run inspect:replay -- path/to/replay.osr');
   process.exit(1);
 }
 const replay = await parseReplay(readFileSync(path));
